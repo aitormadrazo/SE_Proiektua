@@ -3,10 +3,17 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+struct mm_struct {
+    int pgb;
+    int data;
+    int code;
+};
+
 struct pcb_struct {
     int pid;
     int denbora;
     int lehentasuna;
+    struct mm_struct mm;
 };
 
 struct Queue {

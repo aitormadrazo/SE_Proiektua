@@ -15,12 +15,21 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////Egitura///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+struct hitza_struct{
+    char* datua;
+
+};
+
+
+
+
 
 
 struct tikak_konpartitua_struct{
     int tikak;
     pthread_mutex_t mutex; // Mutex aldagaia
 };
+
 
 
 
@@ -40,10 +49,26 @@ struct process_generator_parametroak_struct {
 struct core_parametroak_struct {
     int core_id;
 };
+struct TLB_struct {
+  //egiteko
+};
+
+
+struct MMU_struct {
+    struct TLB_struct TLB;
+};
+struct coreHariak_struct {
+    pthread_t pthreada;
+    int PC;
+    int IR;
+    int PTBR;
+    struct MMU_struct MMU;
+};
 
 struct cpu_struct {
     int core_kop;
-    pthread_t *coreHariak;
+    //pthread_t *coreHariak; //struct  pthread_t *coreHariak;
+    struct coreHariak_struct  *coreHariak;
     int quantum; //erloju ziklotan neurtua
     int erloju_maiztasuna;
     struct Queue* *coreIlarak;
@@ -64,6 +89,7 @@ static struct Queue* pcb_ilara;
 static struct cpu_struct cpu;
 static int sartzeIndizea;
 
+static struct hitza_struct* memoria_fisikoa;
 
 
 
@@ -227,6 +253,20 @@ int main(int argc, char const *argv[]) {
 
   sartzeIndizea=0;
 
+  ///////////////////////////////////////////memoria hasieraketa///////////////////////////////////////////////////////
+
+  memoria_fisikoa = malloc(16777216 * sizeof(struct hitza_struct));
+
+  for(i = 0;i < 16777216;i++) {
+  memoria_fisikoa[i].datua = malloc(4 * sizeof(char));
+  }
+
+
+
+
+
+  ///////////////////////////////////////////memoria bukaera///////////////////////////////////////////////////////
+
   pcb_ilara = createQueue(1000);
 
   //int maiztasuna;
@@ -274,12 +314,12 @@ int main(int argc, char const *argv[]) {
 
   struct core_parametroak_struct *parametroak;
 
-  cpu.coreHariak = malloc(cpu.core_kop * sizeof(pthread_t));
+  cpu.coreHariak = malloc(cpu.core_kop * sizeof(struct coreHariak_struct));
   parametroak = malloc(cpu.core_kop * sizeof(struct core_parametroak_struct));
 
   for(i = 0; i < cpu.core_kop; i++){
       parametroak[i].core_id = i;
-      err = pthread_create(&cpu.coreHariak[i], NULL, core_funtzioa, (void *)&parametroak[i]);;
+      err = pthread_create(&cpu.coreHariak[i].pthreada, NULL, core_funtzioa, (void *)&parametroak[i]);;
 
       if(err > 0){
           fprintf(stderr, "Errore bat gertatu da core haria sortzean.\n");
@@ -288,7 +328,7 @@ int main(int argc, char const *argv[]) {
   }
 
   for(i = 0;i < cpu.core_kop;i++) {
-    pthread_join(cpu.coreHariak[i], NULL);
+    pthread_join(cpu.coreHariak[i].pthreada, NULL);
   }
 
 
