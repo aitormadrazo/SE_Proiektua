@@ -74,67 +74,7 @@ uint32_t lortuHelbidea(uint32_t balioa)
 
 
 
-void idatziMemorian24(uint32_t balioa,uint8_t *dest)
-{
 
-        dest[0] = (balioa & 0x00ff0000) >> 16;
-        dest[1] = (balioa & 0x0000ff00) >>  8;
-        dest[2] = (balioa & 0x000000ff)      ;
-}
-
-
-uint32_t irakurriMemoriatik24(uint8_t *src)
-{
-        uint32_t balioa;
-
-        balioa  = src[0] << 16;
-        balioa |= src[1] << 8;
-        balioa |= src[2]     ;
-
-
-        return balioa;
-}
-
-uint32_t irakurriMemoriatik8_ezker(uint8_t *src)
-{
-        uint32_t balioa;
-
-        balioa  = (src[0]  & 0xf0) >> 4   ;
-
-
-        return balioa;
-}
-uint32_t irakurriMemoriatik8_eskuin(uint8_t *src)
-{
-        uint32_t balioa;
-
-        balioa  = src[0]  & 0x0f   ;
-
-        return balioa;
-}
-
-uint32_t irakurriEragiketa(uint8_t *src)
-{
-        return irakurriMemoriatik8_ezker(&src[0]);
-}
-uint32_t irakurriLehenErregistroa(uint8_t *src)
-{
-        return irakurriMemoriatik8_eskuin(&src[0]);
-}
-
-uint32_t irakurriBigarrenErregistroa(uint8_t *src)
-{
-        return irakurriMemoriatik8_ezker(&src[1]);
-}
-uint32_t irakurriHirugarrenErregistroa(uint8_t *src)
-{
-        return irakurriMemoriatik8_eskuin(&src[1]);
-}
-
-uint32_t irakurriDatuSegmentua(uint8_t *src)
-{
-        return irakurriMemoriatik24(&src[1]);
-}
 /*
 uint32_t loadEdoStore(uint8_t *src)
 {
