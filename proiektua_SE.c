@@ -1,5 +1,6 @@
 
-
+#define MEMORIA_ERRESERBATU_TAMAINA 10000
+#define MEMORIA_TAMAINA 16777216
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -11,81 +12,6 @@
 #include "pcb_ilara.c"
 #include <stdint.h>
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////Funtzio lagungarriak///////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void idatziMemorian32(uint32_t balioa,uint8_t *dest)
-{
-        dest[0] = (balioa & 0xff000000) >> 24;
-        dest[1] = (balioa & 0x00ff0000) >> 16;
-        dest[2] = (balioa & 0x0000ff00) >>  8;
-        dest[3] = (balioa & 0x000000ff)      ;
-}
-
-
-uint32_t irakurriMemoriatik32(uint8_t *src)
-{
-        uint32_t balioa;
-
-        balioa  = src[0] << 24;
-        balioa |= src[1] << 16;
-        balioa |= src[2] <<  8;
-        balioa |= src[3]      ;
-
-        return balioa;
-}
-
-
-uint32_t lortuEragiketa(uint32_t balioa)
-{
-        uint32_t emaitza;
-        emaitza  = (balioa  & 0xf0000000) >> 28   ;
-        return emaitza;
-}
-uint32_t lortuLehenErregistroa(uint32_t balioa)
-{
-        uint32_t emaitza;
-        emaitza  = (balioa  & 0x0f000000) >> 24   ;
-        return emaitza;
-}
-uint32_t lortuBigarrenErregistroa(uint32_t balioa)
-{
-        uint32_t emaitza;
-        emaitza  = (balioa  & 0x00f00000) >> 20   ;
-        return emaitza;
-}
-uint32_t lortuHirugarrenErregistroa(uint32_t balioa)
-{
-        uint32_t emaitza;
-        emaitza  = (balioa  & 0x000f0000) >> 16   ;
-        return emaitza;
-}
-uint32_t lortuHelbidea(uint32_t balioa)
-{
-        uint32_t emaitza;
-        emaitza  = (balioa  & 0x00ffffff)    ;
-        return emaitza;
-}
-
-
-
-
-
-
-
-/*
-uint32_t loadEdoStore(uint8_t *src)
-{
-  if(irakurriEragiketa(&src[0]) == 0 || irakurriEragiketa(&src[0]) == 1){
-    return irakurriMemoriatik24(&src[1]);
-  }else{
-    return irakurriBigarrenErregistroa(&src[0]);
-  }
-
-}
-*/
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////Egitura///////////////////////////////////////////////////////
@@ -163,6 +89,129 @@ static struct cpu_struct cpu;
 static int sartzeIndizea;
 
 static uint8_t* memoria_fisikoa;
+static uint8_t* memoria_fisikoa_egoera;
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////Funtzio lagungarriak///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void idatziMemoriaFisikoan32(uint32_t helbidea, uint32_t balioa )
+{
+
+        memoria_fisikoa[helbidea] = (balioa & 0xff000000) >> 24;
+        memoria_fisikoa[helbidea+1]= (balioa & 0x00ff0000) >> 16;
+        memoria_fisikoa[helbidea+2] = (balioa & 0x0000ff00) >>  8;
+        memoria_fisikoa[helbidea+3] = (balioa & 0x000000ff)      ;
+}
+
+
+uint32_t irakurriMemoriaFisikotik32(uint32_t helbidea)
+{
+        uint32_t balioa;
+
+        balioa  = memoria_fisikoa[helbidea] << 24;
+        balioa |=   memoria_fisikoa[helbidea+1] << 16;
+        balioa |= memoria_fisikoa[helbidea+2] <<  8;
+        balioa |= memoria_fisikoa[helbidea+3]      ;
+
+        return balioa;
+}
+
+
+void idatziMemoriaEgoeran32(uint32_t helbidea, uint32_t balioa )
+{
+
+        memoria_fisikoa_egoera[helbidea] = (balioa & 0xff000000) >> 24;
+        memoria_fisikoa_egoera[helbidea+1]= (balioa & 0x00ff0000) >> 16;
+        memoria_fisikoa_egoera[helbidea+2] = (balioa & 0x0000ff00) >>  8;
+        memoria_fisikoa_egoera[helbidea+3] = (balioa & 0x000000ff)      ;
+}
+
+
+uint32_t irakurriMemoriaEgoeratik32(uint32_t helbidea)
+{
+        uint32_t balioa;
+
+        balioa  = memoria_fisikoa_egoera[helbidea] << 24;
+        balioa |=   memoria_fisikoa_egoera[helbidea+1] << 16;
+        balioa |= memoria_fisikoa_egoera[helbidea+2] <<  8;
+        balioa |= memoria_fisikoa_egoera[helbidea+3]      ;
+
+        return balioa;
+}
+
+
+
+uint32_t helbideFisikoaKalkulatu(uint32_t pageTableHelbidea, uint32_t helbideBirtuala){
+  return irakurriMemoriaFisikotik32(pageTableHelbidea) + helbideBirtuala ;
+}
+
+void idatziMemoriaBirtualean32(uint32_t pageTableHelbidea, uint32_t helbideBirtuala, uint32_t balioa )
+{
+  uint32_t  helbideFisikoa = helbideFisikoaKalkulatu(pageTableHelbidea,helbideBirtuala) ;
+  idatziMemoriaFisikoan32(helbideFisikoa,balioa);
+}
+
+
+uint32_t irakurriMemoriaBirtualetik32(uint32_t pageTableHelbidea, uint32_t helbideBirtuala)
+{
+uint32_t  helbideFisikoa = helbideFisikoaKalkulatu(pageTableHelbidea,helbideBirtuala) ;
+  return irakurriMemoriaFisikotik32(helbideFisikoa);
+}
+
+
+uint32_t lortuEragiketa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0xf0000000) >> 28   ;
+        return emaitza;
+}
+uint32_t lortuLehenErregistroa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x0f000000) >> 24   ;
+        return emaitza;
+}
+uint32_t lortuBigarrenErregistroa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x00f00000) >> 20   ;
+        return emaitza;
+}
+uint32_t lortuHirugarrenErregistroa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x000f0000) >> 16   ;
+        return emaitza;
+}
+uint32_t lortuHelbidea(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x00ffffff)    ;
+        return emaitza;
+}
+
+
+
+
+
+
+
+/*
+uint32_t loadEdoStore(uint8_t *src)
+{
+  if(irakurriEragiketa(&src[0]) == 0 || irakurriEragiketa(&src[0]) == 1){
+    return irakurriMemoriatik24(&src[1]);
+  }else{
+    return irakurriBigarrenErregistroa(&src[0]);
+  }
+
+}
+*/
 
 
 
@@ -271,13 +320,124 @@ void *timer(void *parametroak){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////memoria_funtzioak///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+//hutsa dagon memoria ziti bat aurkitu eta erreserbatzen du. tamaina byte-tan. sistemarako = 1 baldin bada memoria erreserbatuan aurkitzen du bestela beste zatian
+int lekuaDago(int pos, int tamaina ){
 
-int erreserbatu_memoria(int tamaina){
-
-
-return 1000;
+  for(int i = pos;i < (pos+tamaina);i+=4) {
+    if(irakurriMemoriaEgoeratik32(i) != 0){
+      return 0;
+    }
+  }
+  return 1;
 
 }
+
+
+int erreserbatu_memoria(int tamaina){
+  //Aurkitu pagetablen helbide huts bat, 4 byteekoa
+  int pagetableHelbidea= -1;
+  int libreMemoriaHelbidea = -1;
+  int i;
+  for(i = 0;i < (MEMORIA_ERRESERBATU_TAMAINA-4);i+=4)
+  {
+    if(irakurriMemoriaEgoeratik32(i)==0){
+      pagetableHelbidea=i;
+      break;
+    }
+  }
+
+//Aurkitu libre dagoen memoria zatia
+for(i = MEMORIA_ERRESERBATU_TAMAINA;i < MEMORIA_TAMAINA-tamaina;i+=4)
+{
+  if(lekuaDago(i, tamaina)){
+    libreMemoriaHelbidea=i;
+    break;
+  }
+}
+
+//Biak aurkitu badira, beteta jarri
+if(pagetableHelbidea!=-1 && libreMemoriaHelbidea!=-1){
+
+  //Beteta jarri pagetableko helbidea
+  idatziMemoriaEgoeran32(pagetableHelbidea,4);
+  //Beteta jarri memoriako zatia
+  idatziMemoriaEgoeran32(i,tamaina);
+  for(i = libreMemoriaHelbidea+4; i < libreMemoriaHelbidea+tamaina;i+=4)
+  {
+    idatziMemoriaEgoeran32(i,-1);
+  }
+
+  //Bete pagetable
+  idatziMemoriaFisikoan32(pagetableHelbidea,libreMemoriaHelbidea);
+
+
+}
+else{
+  printf("Ez da lekurik aurkitu. (%d, %d)\n",pagetableHelbidea, libreMemoriaHelbidea );
+}
+
+  return pagetableHelbidea;
+
+}
+
+int askatu_memoria(int pageTableHelbidea){
+  int helb;
+  int helbideFisikoa= irakurriMemoriaFisikotik32(pageTableHelbidea);
+  int tamaina= irakurriMemoriaEgoeratik32(helbideFisikoa);
+  for (int i=0; i<tamaina; i+=4)
+  {
+     helb= helbideFisikoaKalkulatu(pageTableHelbidea,i);
+     idatziMemoriaEgoeran32(helb,0);
+     idatziMemoriaFisikoan32(helb,0);
+  }
+  idatziMemoriaEgoeran32(pageTableHelbidea,0);
+  idatziMemoriaFisikoan32(pageTableHelbidea,0);
+
+}
+
+void inprimatuMemoriakoBetetakoak(){
+  int i;
+
+  for(i=0; i< MEMORIA_TAMAINA;i+=4)
+  {
+    if( ((int) irakurriMemoriaEgoeratik32(i))> 0){
+      printf("Betetako helbidea: %d --> %d\n", i,  (int) irakurriMemoriaEgoeratik32(i) );
+    }
+  }
+
+
+}
+
+
+void inprimatuMemoriaEgoera( int erakutsiDatuak){
+  int i,j;
+  int pageTableHelbidea =-1;
+  int helbideFisikoa =-1;
+  int tamaina = -1;
+  for(i=0; i< MEMORIA_ERRESERBATU_TAMAINA;i+=4)
+  {
+    if( irakurriMemoriaEgoeratik32(i)!= 0){
+      pageTableHelbidea=i;
+      helbideFisikoa= irakurriMemoriaFisikotik32(pageTableHelbidea);
+      tamaina= irakurriMemoriaEgoeratik32(helbideFisikoa);
+
+      printf("Betetako helbidea: %d --> %d (tam: %d)\n", pageTableHelbidea,  helbideFisikoa, tamaina );
+
+      if(erakutsiDatuak==1){
+        printf("Datuak:\n");
+        for (j=0; j<tamaina; j+=4)
+        {
+          printf("\tDatua[%d] = %d \n", helbideFisikoaKalkulatu(pageTableHelbidea,j), irakurriMemoriaBirtualetik32(pageTableHelbidea,j));
+        }
+      }
+
+    }
+  }
+
+
+}
+
+//Imprimatu memoria datuak
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////process_loader///////////////////////////////////////////////////////
@@ -373,31 +533,53 @@ int main(int argc, char const *argv[]) {
 
   ///////////////////////////////////////////memoria hasieraketa///////////////////////////////////////////////////////
 
-  memoria_fisikoa = malloc(16777216 * sizeof(uint8_t));
+  memoria_fisikoa = malloc(MEMORIA_TAMAINA * sizeof(uint8_t));
 
-  for(i = 0;i < 16777216;i++) {
+  for(i = 0;i < MEMORIA_TAMAINA;i++) {
   memoria_fisikoa[i]=0;
+  }
+
+  memoria_fisikoa_egoera = malloc(MEMORIA_TAMAINA * sizeof(uint8_t));
+
+  for(i = 0;i < MEMORIA_TAMAINA;i++) {
+  memoria_fisikoa_egoera[i]=0;
   }
 
 
 
-int number = (int)strtol("07000034", NULL, 16);
+int number = (int)strtol("28670000", NULL, 16);
 
+int helb = erreserbatu_memoria(16);
+erreserbatu_memoria(4);
+
+inprimatuMemoriaEgoera(1);
+
+printf("\n\n#####################ASKATU ONDOREN\n" );
+
+
+askatu_memoria(helb);
+erreserbatu_memoria(4);
+erreserbatu_memoria(4);
+inprimatuMemoriaEgoera(1);
+//inprimatuMemoriakoBetetakoak();
+//idatziMemoriaBirtualean32(helb,0,17);
 //memoria_fisikoa[0]=255;
-idatziMemorian32(number,&memoria_fisikoa[0]);
-/*
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriEragiketa(&memoria_fisikoa[0]) );
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriLehenErregistroa(&memoria_fisikoa[0]) );
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriBigarrenErregistroa(&memoria_fisikoa[0]) );
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriHirugarrenErregistroa(&memoria_fisikoa[0]) );
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriDatuSegmentua(&memoria_fisikoa[0]) );
+/*idatziMemoriaFisikoan32(number,&memoria_fisikoa[0]);
+uint32_t proba =irakurriMemoriaFisikotik32(&memoria_fisikoa[0]);
+
+
+printf("memoria fisikoa npack0: %d\n" , (int )lortuEragiketa(proba) );
+printf("memoria fisikoa npack0: %d\n" , (int )lortuLehenErregistroa(proba) );
+printf("memoria fisikoa npack0: %d\n" , (int )lortuBigarrenErregistroa(proba) );
+printf("memoria fisikoa npack0: %d\n" , (int )lortuHirugarrenErregistroa(proba) );
+printf("memoria fisikoa npack0: %d\n" , (int )lortuHelbidea(proba) );
 /*
 printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_ezker(&memoria_fisikoa[0]) );
 printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_eskuin(&memoria_fisikoa[0]) );
 printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_ezker(&memoria_fisikoa[1]) );
 printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_eskuin(&memoria_fisikoa[1]) );
 */
-printf("memoria fisikoa npack0: %d\n" , (int )loadEdoStore(&memoria_fisikoa[0]) );
+//printf("memoria fisikoa npack0: %d\n" , (int )loadEdoStore(&memoria_fisikoa[0]) );
 
 //idatziMemorian32(-1000,&memoria_fisikoa[0]);
 //printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik32(&memoria_fisikoa[0]) );
