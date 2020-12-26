@@ -13,7 +13,10 @@ struct pcb_struct {
     int pid;
     int denbora;
     int lehentasuna;
+    int erregistroak[16];// = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    int uneko_komando_helbidea;//=0;
     struct mm_struct mm;
+
 };
 
 struct Queue {

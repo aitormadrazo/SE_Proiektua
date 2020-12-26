@@ -9,16 +9,148 @@
 #include <time.h>
 #include <unistd.h>
 #include "pcb_ilara.c"
+#include <stdint.h>
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////Funtzio lagungarriak///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void idatziMemorian32(uint32_t balioa,uint8_t *dest)
+{
+        dest[0] = (balioa & 0xff000000) >> 24;
+        dest[1] = (balioa & 0x00ff0000) >> 16;
+        dest[2] = (balioa & 0x0000ff00) >>  8;
+        dest[3] = (balioa & 0x000000ff)      ;
+}
+
+
+uint32_t irakurriMemoriatik32(uint8_t *src)
+{
+        uint32_t balioa;
+
+        balioa  = src[0] << 24;
+        balioa |= src[1] << 16;
+        balioa |= src[2] <<  8;
+        balioa |= src[3]      ;
+
+        return balioa;
+}
+
+
+uint32_t lortuEragiketa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0xf0000000) >> 28   ;
+        return emaitza;
+}
+uint32_t lortuLehenErregistroa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x0f000000) >> 24   ;
+        return emaitza;
+}
+uint32_t lortuBigarrenErregistroa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x00f00000) >> 20   ;
+        return emaitza;
+}
+uint32_t lortuHirugarrenErregistroa(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x000f0000) >> 16   ;
+        return emaitza;
+}
+uint32_t lortuHelbidea(uint32_t balioa)
+{
+        uint32_t emaitza;
+        emaitza  = (balioa  & 0x00ffffff)    ;
+        return emaitza;
+}
+
+
+
+
+
+
+void idatziMemorian24(uint32_t balioa,uint8_t *dest)
+{
+
+        dest[0] = (balioa & 0x00ff0000) >> 16;
+        dest[1] = (balioa & 0x0000ff00) >>  8;
+        dest[2] = (balioa & 0x000000ff)      ;
+}
+
+
+uint32_t irakurriMemoriatik24(uint8_t *src)
+{
+        uint32_t balioa;
+
+        balioa  = src[0] << 16;
+        balioa |= src[1] << 8;
+        balioa |= src[2]     ;
+
+
+        return balioa;
+}
+
+uint32_t irakurriMemoriatik8_ezker(uint8_t *src)
+{
+        uint32_t balioa;
+
+        balioa  = (src[0]  & 0xf0) >> 4   ;
+
+
+        return balioa;
+}
+uint32_t irakurriMemoriatik8_eskuin(uint8_t *src)
+{
+        uint32_t balioa;
+
+        balioa  = src[0]  & 0x0f   ;
+
+        return balioa;
+}
+
+uint32_t irakurriEragiketa(uint8_t *src)
+{
+        return irakurriMemoriatik8_ezker(&src[0]);
+}
+uint32_t irakurriLehenErregistroa(uint8_t *src)
+{
+        return irakurriMemoriatik8_eskuin(&src[0]);
+}
+
+uint32_t irakurriBigarrenErregistroa(uint8_t *src)
+{
+        return irakurriMemoriatik8_ezker(&src[1]);
+}
+uint32_t irakurriHirugarrenErregistroa(uint8_t *src)
+{
+        return irakurriMemoriatik8_eskuin(&src[1]);
+}
+
+uint32_t irakurriDatuSegmentua(uint8_t *src)
+{
+        return irakurriMemoriatik24(&src[1]);
+}
+/*
+uint32_t loadEdoStore(uint8_t *src)
+{
+  if(irakurriEragiketa(&src[0]) == 0 || irakurriEragiketa(&src[0]) == 1){
+    return irakurriMemoriatik24(&src[1]);
+  }else{
+    return irakurriBigarrenErregistroa(&src[0]);
+  }
+
+}
+*/
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////Egitura///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
-struct hitza_struct{
-    char* datua;
 
-};
 
 
 
@@ -42,7 +174,7 @@ struct timer_parametroak_struct {
     int timer_maiztazuna;//erloju ziklotan neurtua
 };
 
-struct process_generator_parametroak_struct {
+struct process_loader_parametroak_struct {
     int process_maiztasuna;//erloju ziklotan neurtua
 };
 
@@ -62,6 +194,7 @@ struct coreHariak_struct {
     int PC;
     int IR;
     int PTBR;
+    int erregistroak[16];// = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     struct MMU_struct MMU;
 };
 
@@ -89,7 +222,7 @@ static struct Queue* pcb_ilara;
 static struct cpu_struct cpu;
 static int sartzeIndizea;
 
-static struct hitza_struct* memoria_fisikoa;
+static uint8_t* memoria_fisikoa;
 
 
 
@@ -171,12 +304,12 @@ void *timer(void *parametroak){
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////process_generator///////////////////////////////////////////////////////
+///////////////////////////////////////////process_loader///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void *process_generator(void *parametroak){
+/*void *process_loader(void *parametroak){
 
-  struct process_generator_parametroak_struct *param = (struct process_generator_parametroak_struct *)parametroak;
+  struct process_loader_parametroak_struct *param = (struct process_loader_parametroak_struct *)parametroak;
   while(1){
 
       usleep(param->process_maiztasuna*cpu.erloju_maiztasuna);
@@ -194,6 +327,51 @@ void *process_generator(void *parametroak){
       # endif
   }
 }
+*/
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////memoria_funtzioak///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int erreserbatu_memoria(int tamaina){
+
+
+return 1000;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////process_loader///////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void *process_loader(void *parametroak){
+
+  struct process_loader_parametroak_struct *param = (struct process_loader_parametroak_struct *)parametroak;
+  while(1){
+
+      usleep(param->process_maiztasuna*cpu.erloju_maiztasuna);
+      struct pcb_struct pcb;
+      pcb.pid++;
+      pcb.lehentasuna=rand() % 100;
+      pcb.denbora=(rand() % 10000) ; //erloju ziklotan neurtua
+
+      pcb.mm.pgb=0;
+      pcb.mm.data=0;
+      pcb.mm.code=0;
+
+
+
+      pthread_mutex_lock(&pcb_ilara->mutex);
+      enqueue(pcb_ilara, pcb);
+      pthread_mutex_unlock(&pcb_ilara->mutex);
+      # ifdef DEBUG
+      printf("procesua sortu dut.pid=  %d  procesu denbora %d \n", pcb.pid, pcb.denbora);
+      printf("prozesu kopurua: %d \n", pcb_ilara->size);
+      # endif
+  }
+}
+
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////core_funtzioa///////////////////////////////////////////////////////
@@ -255,14 +433,34 @@ int main(int argc, char const *argv[]) {
 
   ///////////////////////////////////////////memoria hasieraketa///////////////////////////////////////////////////////
 
-  memoria_fisikoa = malloc(16777216 * sizeof(struct hitza_struct));
+  memoria_fisikoa = malloc(16777216 * sizeof(uint8_t));
 
   for(i = 0;i < 16777216;i++) {
-  memoria_fisikoa[i].datua = malloc(4 * sizeof(char));
+  memoria_fisikoa[i]=0;
   }
 
 
 
+int number = (int)strtol("07000034", NULL, 16);
+
+//memoria_fisikoa[0]=255;
+idatziMemorian32(number,&memoria_fisikoa[0]);
+/*
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriEragiketa(&memoria_fisikoa[0]) );
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriLehenErregistroa(&memoria_fisikoa[0]) );
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriBigarrenErregistroa(&memoria_fisikoa[0]) );
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriHirugarrenErregistroa(&memoria_fisikoa[0]) );
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriDatuSegmentua(&memoria_fisikoa[0]) );
+/*
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_ezker(&memoria_fisikoa[0]) );
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_eskuin(&memoria_fisikoa[0]) );
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_ezker(&memoria_fisikoa[1]) );
+printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_eskuin(&memoria_fisikoa[1]) );
+*/
+printf("memoria fisikoa npack0: %d\n" , (int )loadEdoStore(&memoria_fisikoa[0]) );
+
+//idatziMemorian32(-1000,&memoria_fisikoa[0]);
+//printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik32(&memoria_fisikoa[0]) );
 
 
   ///////////////////////////////////////////memoria bukaera///////////////////////////////////////////////////////
@@ -285,7 +483,7 @@ int main(int argc, char const *argv[]) {
 
   struct erloju_parametroak_struct erloju_parametroak;
   struct timer_parametroak_struct timer_parametroak;
-  struct process_generator_parametroak_struct process_parametroak;
+  struct process_loader_parametroak_struct process_parametroak;
 
 
   erloju_parametroak.maiztasuna = strtol(argv[1], &p, 10); // Lehen argumentua irakurri
@@ -305,7 +503,7 @@ int main(int argc, char const *argv[]) {
 
   pthread_create(&erlojuHaria, NULL, erlojua, (void *)&erloju_parametroak);
   pthread_create(&timerHaria, NULL, timer, (void *)&timer_parametroak);
-  pthread_create(&processHaria, NULL, process_generator, (void *)&process_parametroak);
+  pthread_create(&processHaria, NULL, process_loader, (void *)&process_parametroak);
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////////CPU_Hariak///////////////////////////////////////////////////////
