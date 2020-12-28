@@ -213,7 +213,112 @@ uint32_t loadEdoStore(uint8_t *src)
 }
 */
 
+void fitxategiaIrakurri(char* izena ){
 
+char linea[1024];
+  FILE *fich;
+
+  fich = fopen(izena, "r");
+  //Lee línea a línea y escribe en pantalla hasta el fin de fichero
+  while(fgets(linea, 1024, (FILE*) fich)) {
+      printf("Proba \n");
+      printf("LINEA: %s \n", linea);
+  }
+  fclose(fich);
+}
+
+int lortuLerroKop (char* izena){
+int kop=0;
+char linea[1024];
+  FILE *fich;
+
+  fich = fopen(izena, "r");
+    while(fgets(linea, 1024, (FILE*) fich)) {
+      kop++;
+    }
+    fclose(fich);
+    return kop-2;
+  }
+
+int lortuDataHelbidea (char* izena){
+  char helbidea[7];
+  char linea[1024];
+  FILE *fich;
+
+  fich = fopen(izena, "r");
+
+  fgets(linea, 1024, (FILE*) fich);
+  fgets(linea, 1024, (FILE*) fich);
+
+  helbidea[0]= linea[6];
+
+  helbidea[1]= linea[7];
+  helbidea[2]= linea[8];
+  helbidea[3]= linea[9];
+  helbidea[4]= linea[10];
+  helbidea[5]= linea[11];
+
+  helbidea[6]= '\0';
+
+
+  fclose(fich);
+
+  return (int)strtol(helbidea, NULL, 16);
+
+ }
+
+ void kopiatuMemoriara(char* izena,int pageTableHelbidea ){
+  int helbideBirtuala=0;
+  int balioa = 0;
+  char linea[1024];
+  FILE *fich;
+
+  fich = fopen(izena, "r");
+  fgets(linea, 1024, (FILE*) fich);
+  fgets(linea, 1024, (FILE*) fich);
+  while(fgets(linea, 1024, (FILE*) fich)) {
+    balioa= (int)strtol(linea, NULL, 16);
+    idatziMemoriaBirtualean32(pageTableHelbidea,helbideBirtuala,balioa);
+    helbideBirtuala = helbideBirtuala + 4;
+  }
+  fclose(fich);
+
+ }
+/*
+void fitxategiaIrakurri(char* izena ){
+
+//~ char ofilename[]= "salida.txt";
+struct arrChar aux;int i=0,j=0,res;
+
+FILE *ifp;
+ifp=fopen(izena,"r");
+    while (fscanf(ifp,"%s",aux.string) != EOF){
+        j++;
+    }
+    printf("el archivo tiene %d valores",j);
+fclose (ifp);
+
+}
+*/
+/*
+void karpetagoGuztiaIrakurri (char* karpeta){
+  DIR *karpeta;
+
+  while ((ent = readdir (karpeta)) != NULL)
+   {
+     // Nos devolverá el directorio actual (.) y el anterior (..), como hace ls
+     if ( (strcmp(ent->d_name, ".")!=0) && (strcmp(ent->d_name, "..")!=0) )
+   {
+     // Una vez tenemos el archivo, lo pasamos a una función para procesarlo.
+     procesoArchivo(ent->d_name);
+   }
+   }
+ closedir (karpeta);
+
+ return EXIT_SUCCESS;
+}
+}
+*/
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////erlojua///////////////////////////////////////////////////////
@@ -446,18 +551,23 @@ void inprimatuMemoriaEgoera( int erakutsiDatuak){
 void *process_loader(void *parametroak){
 
   struct process_loader_parametroak_struct *param = (struct process_loader_parametroak_struct *)parametroak;
+  char* fitxategiIzena="/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog000.elf";
   while(1){
-
+    printf("%d\n",lortuLerroKop(fitxategiIzena) );
+    printf("%d\n", lortuDataHelbidea(fitxategiIzena));
+      //fitxategiaIrakurri("/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog000.elf");
       usleep(param->process_maiztasuna*cpu.erloju_maiztasuna);
       struct pcb_struct pcb;
       pcb.pid++;
       pcb.lehentasuna=rand() % 100;
       pcb.denbora=(rand() % 10000) ; //erloju ziklotan neurtua
 
-      pcb.mm.pgb=0;
-      pcb.mm.data=0;
+      pcb.mm.pgb=erreserbatu_memoria(lortuLerroKop(fitxategiIzena)*4);
+      pcb.mm.data=lortuDataHelbidea(fitxategiIzena);
       pcb.mm.code=0;
+      kopiatuMemoriara(fitxategiIzena,pcb.mm.pgb);
 
+printf("pgbe: %d\n",   pcb.mm.pgb);
 
 
       pthread_mutex_lock(&pcb_ilara->mutex);
@@ -467,7 +577,11 @@ void *process_loader(void *parametroak){
       printf("procesua sortu dut.pid=  %d  procesu denbora %d \n", pcb.pid, pcb.denbora);
       printf("prozesu kopurua: %d \n", pcb_ilara->size);
       # endif
+      inprimatuMemoriaEgoera(1);
+      break;
+
   }
+
 }
 
 
@@ -527,6 +641,14 @@ void *core_funtzioa(void *parametroak){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char const *argv[]) {
+
+
+
+
+
+
+
+
   int i, err;
 
   sartzeIndizea=0;
@@ -561,6 +683,18 @@ askatu_memoria(helb);
 erreserbatu_memoria(4);
 erreserbatu_memoria(4);
 inprimatuMemoriaEgoera(1);
+
+
+
+
+
+
+
+
+
+printf("\n\n#####################Proba\n" );
+
+
 //inprimatuMemoriakoBetetakoak();
 //idatziMemoriaBirtualean32(helb,0,17);
 //memoria_fisikoa[0]=255;
@@ -666,5 +800,6 @@ pthread_join(processHaria, NULL);
 
 
 return 0;
+
 
 }
