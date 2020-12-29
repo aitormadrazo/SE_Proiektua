@@ -170,6 +170,26 @@ uint32_t lortuEragiketa(uint32_t balioa)
         emaitza  = (balioa  & 0xf0000000) >> 28   ;
         return emaitza;
 }
+
+int lortuEragiketaDenbora(int eragiketa){
+  int emaitza =0;
+  if(eragiketa == 0){
+    emaitza=4;
+//st
+  }else if(eragiketa== 1){
+    emaitza=4;
+//add
+  }else if (eragiketa == 2){
+    emaitza =  8;
+//exit
+}else{
+    emaitza=0;
+}
+
+  return emaitza;
+}
+
+
 uint32_t lortuLehenErregistroa(uint32_t balioa)
 {
         uint32_t emaitza;
@@ -227,18 +247,46 @@ char linea[1024];
   fclose(fich);
 }
 
-int lortuLerroKop (char* izena){
+
+
+
+int lortuDenboraKop (char* izena){
 int kop=0;
 char linea[1024];
+int eragiketa = 0;
   FILE *fich;
 
   fich = fopen(izena, "r");
+  fgets(linea, 1024, (FILE*) fich);
+  fgets(linea, 1024, (FILE*) fich);
+
     while(fgets(linea, 1024, (FILE*) fich)) {
-      kop++;
+      eragiketa=lortuEragiketa((int)strtol(linea, NULL, 16));
+
+      //exit
+      if( eragiketa== 15){
+        break;
+      }else{
+        kop=kop +  lortuEragiketaDenbora(eragiketa);
+      }
     }
     fclose(fich);
-    return kop-2;
+    return kop;
   }
+
+  int lortuLerroKop (char* izena){
+  int kop=0;
+  char linea[1024];
+    FILE *fich;
+
+    fich = fopen(izena, "r");
+
+      while(fgets(linea, 1024, (FILE*) fich)) {
+          kop++;
+      }
+      fclose(fich);
+      return kop-2;
+    }
 
 int lortuDataHelbidea (char* izena){
   char helbidea[7];
@@ -389,7 +437,7 @@ void *timer(void *parametroak){
     	if(tikak_konp.tikak >= param->timer_maiztazuna){
 
         tikak_konp.tikak=0;
-    		printf("TIMER \n");
+    		//printf("TIMER \n");
         scheduler_etena();
     	}
       pthread_mutex_unlock(&tikak_konp.mutex);
@@ -542,6 +590,22 @@ void inprimatuMemoriaEgoera( int erakutsiDatuak){
 
 }
 
+
+void inprimatuDatuZatia(struct pcb_struct pcb){
+  int pageTableHelbidea =pcb.mm.pgb;
+  int helbideFisikoa =-1;
+  int tamaina = -1;
+
+  helbideFisikoa= irakurriMemoriaFisikotik32(pageTableHelbidea);
+  tamaina= irakurriMemoriaEgoeratik32(helbideFisikoa);
+  for (int j=pcb.mm.data; j<tamaina; j+=4)
+  {
+    printf("\tDatua[%d] = %d \n", j, irakurriMemoriaBirtualetik32(pageTableHelbidea,j));
+  }
+
+}
+
+
 //Imprimatu memoria datuak
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -551,23 +615,38 @@ void inprimatuMemoriaEgoera( int erakutsiDatuak){
 void *process_loader(void *parametroak){
 
   struct process_loader_parametroak_struct *param = (struct process_loader_parametroak_struct *)parametroak;
-  char* fitxategiIzena="/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog000.elf";
+  int unekoPid = 0;
+  //char* fitxategiIzena="/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/progXXX.elf";
+  char fitxategiIzena[256];
+
+  // Prints "Hello world!" on hello_world
+
   while(1){
-    printf("%d\n",lortuLerroKop(fitxategiIzena) );
-    printf("%d\n", lortuDataHelbidea(fitxategiIzena));
+    //printf("%d\n",lortuLerroKop(fitxategiIzena) );
+    //printf("%d\n", lortuDataHelbidea(fitxategiIzena));
       //fitxategiaIrakurri("/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog000.elf");
+      //sortu izen berria
+      sprintf(fitxategiIzena, "/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog%03d.elf", unekoPid);
+      //printf("/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog%03d.elf\n", 11);
+      printf("SCHEDULER: Programa hau kargatu dut: %s\n",fitxategiIzena );
       usleep(param->process_maiztasuna*cpu.erloju_maiztasuna);
       struct pcb_struct pcb;
-      pcb.pid++;
+      pcb.pid=unekoPid;
+      
       pcb.lehentasuna=rand() % 100;
-      pcb.denbora=(rand() % 10000) ; //erloju ziklotan neurtua
+      pcb.denbora= lortuDenboraKop(fitxategiIzena); //erloju ziklotan neurtua
 
       pcb.mm.pgb=erreserbatu_memoria(lortuLerroKop(fitxategiIzena)*4);
       pcb.mm.data=lortuDataHelbidea(fitxategiIzena);
       pcb.mm.code=0;
-      kopiatuMemoriara(fitxategiIzena,pcb.mm.pgb);
+      for(int i = 0;i < 16;i++){
+        pcb.erregistroak[i]=0;
+      }
+      pcb.uneko_komando_helbidea=0;
 
-printf("pgbe: %d\n",   pcb.mm.pgb);
+      kopiatuMemoriara(fitxategiIzena,pcb.mm.pgb);
+//printf("denbora: %d\n",   pcb.denbora);
+//printf("pgbe: %d\n",   pcb.mm.pgb);
 
 
       pthread_mutex_lock(&pcb_ilara->mutex);
@@ -577,8 +656,8 @@ printf("pgbe: %d\n",   pcb.mm.pgb);
       printf("procesua sortu dut.pid=  %d  procesu denbora %d \n", pcb.pid, pcb.denbora);
       printf("prozesu kopurua: %d \n", pcb_ilara->size);
       # endif
-      inprimatuMemoriaEgoera(1);
-      break;
+      //inprimatuMemoriaEgoera(1);
+      unekoPid++;
 
   }
 
@@ -591,9 +670,44 @@ printf("pgbe: %d\n",   pcb.mm.pgb);
 ///////////////////////////////////////////core_funtzioa///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+void exekutatuKomandoa(uint32_t komandoa, int core_id, struct pcb_struct pcb ){
+  int eragiketa;
+  int r1,r2,r3;
+  int helbidea;
+  eragiketa = lortuEragiketa(komandoa);
+  r1=lortuLehenErregistroa(komandoa);
+  r2=lortuBigarrenErregistroa(komandoa);
+  r3=lortuHirugarrenErregistroa(komandoa);
+  helbidea = lortuHelbidea(komandoa);
+
+switch (eragiketa) {
+  case 0: //ld
+    cpu.coreHariak[core_id].erregistroak[r1]= irakurriMemoriaBirtualetik32(pcb.mm.pgb,helbidea);
+
+    break;
+  case 1: //st
+    idatziMemoriaBirtualean32(pcb.mm.pgb,helbidea,  cpu.coreHariak[core_id].erregistroak[r1]);
+    break;
+  case 2: //add
+    cpu.coreHariak[core_id].erregistroak[r1]=cpu.coreHariak[core_id].erregistroak[r2] + cpu.coreHariak[core_id].erregistroak[r3];
+    break;
+  default:
+    break;
+}
+usleep(lortuEragiketaDenbora(eragiketa)*cpu.erloju_maiztasuna);
+
+
+}
+
+
+
 void *core_funtzioa(void *parametroak){
-  struct pcb_struct ateratakoa;
+  struct pcb_struct pcb;
   int hutsa_dago=1;
+  int geratzen_den_quantuma;
+  uint32_t uneko_komandoa;
+  int uneko_eragiketa;
+  int komandoa_bukadu_dut=0;
   struct core_parametroak_struct *param = (struct core_parametroak_struct *)parametroak;
   # ifdef DEBUG
   printf("Core bat sortu da: %d \n", param->core_id);
@@ -604,31 +718,72 @@ void *core_funtzioa(void *parametroak){
     if(isEmpty(cpu.coreIlarak[param->core_id])){
       hutsa_dago=1;
     }else{
-      ateratakoa =dequeue(cpu.coreIlarak[param->core_id]);
+      pcb =dequeue(cpu.coreIlarak[param->core_id]);
       hutsa_dago=0;
     }
     pthread_mutex_unlock(&cpu.coreIlarak[param->core_id]->mutex);
 
     if(hutsa_dago==0){
-    if(ateratakoa.denbora<=cpu.quantum){
 
-      usleep(ateratakoa.denbora*cpu.erloju_maiztasuna);
-      # ifdef DEBUG
-      printf("Core[%d]: prozesu bat amaitu dut  \n", param->core_id);
-      # endif
-    }
-    else{
 
-      usleep(cpu.quantum*cpu.erloju_maiztasuna);
-      ateratakoa.denbora=ateratakoa.denbora - cpu.quantum;
 
-      pthread_mutex_lock(&cpu.coreIlarak[param->core_id]->mutex);
-      enqueue(cpu.coreIlarak[param->core_id], ateratakoa);
-      pthread_mutex_unlock(&cpu.coreIlarak[param->core_id]->mutex);
+      //erregistroak kopiatu corera
+      for(int i=0;i<16;i++){
+          cpu.coreHariak[param->core_id].erregistroak[i]=pcb.erregistroak[i];
+      }
 
-    }
-    }
-  }
+
+
+      geratzen_den_quantuma=cpu.quantum;
+      komandoa_bukadu_dut=0;
+      while(geratzen_den_quantuma>0)
+      {
+          //Lortu uneko komandoa
+          uneko_komandoa= irakurriMemoriaBirtualetik32(pcb.mm.pgb,pcb.uneko_komando_helbidea);
+          uneko_eragiketa= lortuEragiketa(uneko_komandoa);
+
+          if (uneko_eragiketa==15){ //exit
+            komandoa_bukadu_dut=1;
+            break;
+          }
+
+          if(lortuEragiketaDenbora(uneko_eragiketa)<geratzen_den_quantuma){
+              //exekutatu
+              exekutatuKomandoa(uneko_komandoa,param->core_id,pcb);
+              geratzen_den_quantuma = geratzen_den_quantuma- lortuEragiketaDenbora(uneko_eragiketa);
+              //pasa hurrengo komandora
+              pcb.uneko_komando_helbidea = pcb.uneko_komando_helbidea +4;
+          }else{
+              usleep(geratzen_den_quantuma*cpu.erloju_maiztasuna);
+              geratzen_den_quantuma=0;
+              komandoa_bukadu_dut=0;
+              break;
+          }
+      }
+
+      if(komandoa_bukadu_dut==1){
+        printf("Core[%d]: pid= %d prozesua amaitu dut  \n", param->core_id, pcb.pid);
+        printf("---Memoria birtualeko datu zatia---\n" );
+        inprimatuDatuZatia(pcb);
+        //inprimatu erregistroak
+        printf("---Erregistroen amaierako egoera---\n" );
+        for(int i=0;i<16;i++){
+          printf("\tErreg[%d]: %d  \n", i,cpu.coreHariak[param->core_id].erregistroak[i]);
+        }
+      }else{
+          //erregistroak kopiatu pcb-ra
+
+          for(int i=0;i<16;i++){
+              pcb.erregistroak[i]=cpu.coreHariak[param->core_id].erregistroak[i];
+          }
+          //pcb sartu ilaran berriro
+          pthread_mutex_lock(&cpu.coreIlarak[param->core_id]->mutex);
+          enqueue(cpu.coreIlarak[param->core_id], pcb);
+          pthread_mutex_unlock(&cpu.coreIlarak[param->core_id]->mutex);
+      }
+
+    } //if hutsa da
+  }// while
 
 
 
