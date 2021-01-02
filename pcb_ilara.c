@@ -13,8 +13,8 @@ struct pcb_struct {
     int pid;
     int denbora;
     int lehentasuna;
-    int erregistroak[16];// = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    int uneko_komando_helbidea;//=0;
+    int erregistroak[16];
+    int uneko_komando_helbidea;
     struct mm_struct mm;
 
 };

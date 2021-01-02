@@ -60,13 +60,12 @@ struct coreHariak_struct {
     int PC;
     int IR;
     int PTBR;
-    int erregistroak[16];// = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    int erregistroak[16];
     struct MMU_struct MMU;
 };
 
 struct cpu_struct {
     int core_kop;
-    //pthread_t *coreHariak; //struct  pthread_t *coreHariak;
     struct coreHariak_struct  *coreHariak;
     int quantum; //erloju ziklotan neurtua
     int erloju_maiztasuna;
@@ -216,30 +215,12 @@ uint32_t lortuHelbidea(uint32_t balioa)
 }
 
 
-
-
-
-
-
-/*
-uint32_t loadEdoStore(uint8_t *src)
-{
-  if(irakurriEragiketa(&src[0]) == 0 || irakurriEragiketa(&src[0]) == 1){
-    return irakurriMemoriatik24(&src[1]);
-  }else{
-    return irakurriBigarrenErregistroa(&src[0]);
-  }
-
-}
-*/
-
 void fitxategiaIrakurri(char* izena ){
 
 char linea[1024];
   FILE *fich;
 
   fich = fopen(izena, "r");
-  //Lee línea a línea y escribe en pantalla hasta el fin de fichero
   while(fgets(linea, 1024, (FILE*) fich)) {
       printf("Proba \n");
       printf("LINEA: %s \n", linea);
@@ -332,41 +313,7 @@ int lortuDataHelbidea (char* izena){
   fclose(fich);
 
  }
-/*
-void fitxategiaIrakurri(char* izena ){
 
-//~ char ofilename[]= "salida.txt";
-struct arrChar aux;int i=0,j=0,res;
-
-FILE *ifp;
-ifp=fopen(izena,"r");
-    while (fscanf(ifp,"%s",aux.string) != EOF){
-        j++;
-    }
-    printf("el archivo tiene %d valores",j);
-fclose (ifp);
-
-}
-*/
-/*
-void karpetagoGuztiaIrakurri (char* karpeta){
-  DIR *karpeta;
-
-  while ((ent = readdir (karpeta)) != NULL)
-   {
-     // Nos devolverá el directorio actual (.) y el anterior (..), como hace ls
-     if ( (strcmp(ent->d_name, ".")!=0) && (strcmp(ent->d_name, "..")!=0) )
-   {
-     // Una vez tenemos el archivo, lo pasamos a una función para procesarlo.
-     procesoArchivo(ent->d_name);
-   }
-   }
- closedir (karpeta);
-
- return EXIT_SUCCESS;
-}
-}
-*/
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////erlojua///////////////////////////////////////////////////////
@@ -437,39 +384,12 @@ void *timer(void *parametroak){
     	if(tikak_konp.tikak >= param->timer_maiztazuna){
 
         tikak_konp.tikak=0;
-    		//printf("TIMER \n");
         scheduler_etena();
     	}
       pthread_mutex_unlock(&tikak_konp.mutex);
     }
 }
 
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////process_loader///////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*void *process_loader(void *parametroak){
-
-  struct process_loader_parametroak_struct *param = (struct process_loader_parametroak_struct *)parametroak;
-  while(1){
-
-      usleep(param->process_maiztasuna*cpu.erloju_maiztasuna);
-      struct pcb_struct pcb;
-      pcb.pid++;
-      pcb.lehentasuna=rand() % 100;
-      pcb.denbora=(rand() % 10000) ; //erloju ziklotan neurtua
-
-      pthread_mutex_lock(&pcb_ilara->mutex);
-      enqueue(pcb_ilara, pcb);
-      pthread_mutex_unlock(&pcb_ilara->mutex);
-      # ifdef DEBUG
-      printf("procesua sortu dut.pid=  %d  procesu denbora %d \n", pcb.pid, pcb.denbora);
-      printf("prozesu kopurua: %d \n", pcb_ilara->size);
-      # endif
-  }
-}
-*/
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////memoria_funtzioak///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -606,8 +526,6 @@ void inprimatuDatuZatia(struct pcb_struct pcb){
 }
 
 
-//Imprimatu memoria datuak
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////process_loader///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -616,23 +534,16 @@ void *process_loader(void *parametroak){
 
   struct process_loader_parametroak_struct *param = (struct process_loader_parametroak_struct *)parametroak;
   int unekoPid = 0;
-  //char* fitxategiIzena="/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/progXXX.elf";
   char fitxategiIzena[256];
 
-  // Prints "Hello world!" on hello_world
-
   while(1){
-    //printf("%d\n",lortuLerroKop(fitxategiIzena) );
-    //printf("%d\n", lortuDataHelbidea(fitxategiIzena));
-      //fitxategiaIrakurri("/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog000.elf");
-      //sortu izen berria
+
       sprintf(fitxategiIzena, "/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog%03d.elf", unekoPid);
-      //printf("/home/aitor/unibersidadea/3maila/SE_Proiektuak/3_Faseak_SE/3.2Probak/Programak-20201213/prog%03d.elf\n", 11);
       printf("SCHEDULER: Programa hau kargatu dut: %s\n",fitxategiIzena );
       usleep(param->process_maiztasuna*cpu.erloju_maiztasuna);
       struct pcb_struct pcb;
       pcb.pid=unekoPid;
-      
+
       pcb.lehentasuna=rand() % 100;
       pcb.denbora= lortuDenboraKop(fitxategiIzena); //erloju ziklotan neurtua
 
@@ -645,9 +556,6 @@ void *process_loader(void *parametroak){
       pcb.uneko_komando_helbidea=0;
 
       kopiatuMemoriara(fitxategiIzena,pcb.mm.pgb);
-//printf("denbora: %d\n",   pcb.denbora);
-//printf("pgbe: %d\n",   pcb.mm.pgb);
-
 
       pthread_mutex_lock(&pcb_ilara->mutex);
       enqueue(pcb_ilara, pcb);
@@ -823,7 +731,7 @@ int main(int argc, char const *argv[]) {
   }
 
 
-
+/*
 int number = (int)strtol("28670000", NULL, 16);
 
 int helb = erreserbatu_memoria(16);
@@ -840,38 +748,8 @@ erreserbatu_memoria(4);
 inprimatuMemoriaEgoera(1);
 
 
-
-
-
-
-
-
-
 printf("\n\n#####################Proba\n" );
-
-
-//inprimatuMemoriakoBetetakoak();
-//idatziMemoriaBirtualean32(helb,0,17);
-//memoria_fisikoa[0]=255;
-/*idatziMemoriaFisikoan32(number,&memoria_fisikoa[0]);
-uint32_t proba =irakurriMemoriaFisikotik32(&memoria_fisikoa[0]);
-
-
-printf("memoria fisikoa npack0: %d\n" , (int )lortuEragiketa(proba) );
-printf("memoria fisikoa npack0: %d\n" , (int )lortuLehenErregistroa(proba) );
-printf("memoria fisikoa npack0: %d\n" , (int )lortuBigarrenErregistroa(proba) );
-printf("memoria fisikoa npack0: %d\n" , (int )lortuHirugarrenErregistroa(proba) );
-printf("memoria fisikoa npack0: %d\n" , (int )lortuHelbidea(proba) );
-/*
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_ezker(&memoria_fisikoa[0]) );
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_eskuin(&memoria_fisikoa[0]) );
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_ezker(&memoria_fisikoa[1]) );
-printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik8_eskuin(&memoria_fisikoa[1]) );
 */
-//printf("memoria fisikoa npack0: %d\n" , (int )loadEdoStore(&memoria_fisikoa[0]) );
-
-//idatziMemorian32(-1000,&memoria_fisikoa[0]);
-//printf("memoria fisikoa npack0: %d\n" , (int )irakurriMemoriatik32(&memoria_fisikoa[0]) );
 
 
   ///////////////////////////////////////////memoria bukaera///////////////////////////////////////////////////////
